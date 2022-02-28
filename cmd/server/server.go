@@ -65,6 +65,8 @@ func (s *Server) init(authorsFile string, postsFile string) error {
 		return err
 	}
 	s.data = data
+
+	return nil
 }
 
 func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
