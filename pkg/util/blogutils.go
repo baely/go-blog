@@ -28,7 +28,7 @@ func LoadAuthors(authorsLocation string) (map[int]blog.Author, error) {
 }
 
 func LoadPosts(postsLocation string, authors map[int]blog.Author) (map[int]blog.Post, error) {
-	var posts []blog.Post
+	var posts []blog.RawPost
 	postsMap := make(map[int]blog.Post)
 
 	postData, err := ioutil.ReadFile(postsLocation)
@@ -41,8 +41,9 @@ func LoadPosts(postsLocation string, authors map[int]blog.Author) (map[int]blog.
 		return nil, err
 	}
 
-	for _, post := range posts {
-		post.Author = authors[post.AuthorId]
+	var post blog.Post
+	for _, rawPost := range posts {
+		post = rawPost.ToPost(authors)
 		postsMap[post.Id] = post
 	}
 
