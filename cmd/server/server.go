@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"go-blog/pkg/blog"
+	"go-blog/pkg/util"
 	"net/http"
 )
 
@@ -17,20 +18,23 @@ type Server struct {
 	data    serverData
 }
 
-func loadServerData(authorsFile string, postsFile string) serverData {
-	authors := blog.LoadAuthors(authorsFile)
-	posts := blog.LoadPosts(postsFile, authors)
+func loadServerData(authorsFile string, postsFile string) (serverData, error) {
+	authors, err1 := util.LoadAuthors(authorsFile)
+	if err1 != nil {
+		return serverData{}, err1
+	}
+	posts, err2 := util.LoadPosts(postsFile, authors)
+	if err2 != nil {
+		return serverData{}, err2
+	}
 	data := serverData{
 		authors: authors,
 		posts:   posts,
 	}
-	return data
+	return data, nil
 }
 
 func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("serverAuthors was hit")
-	fmt.Println("length of authors is: ", s.data.authors)
-
 	for i, author := range s.data.authors {
 		if _, err := fmt.Fprintf(w, "Author #%d: [%s]\n", i, author.DisplayName()); err != nil {
 			fmt.Println(err)
@@ -46,7 +50,7 @@ func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) Run(authorsFile string, postsFile string) {
+func (s *Server) Run(authorsFile string, postsFile string) error {
 	if s.address == "" {
 		s.address = "0.0.0.0"
 	}
@@ -54,7 +58,11 @@ func (s *Server) Run(authorsFile string, postsFile string) {
 		s.port = "8080"
 	}
 
-	s.data = loadServerData(authorsFile, postsFile)
+	data, err := loadServerData(authorsFile, postsFile)
+	if err != nil {
+		return err
+	}
+	s.data = data
 
 	http.HandleFunc("/authors", s.serveAuthors)
 	http.HandleFunc("/posts", s.serverPosts)
@@ -62,6 +70,8 @@ func (s *Server) Run(authorsFile string, postsFile string) {
 	fmt.Println("Server is running...")
 
 	if err := http.ListenAndServe(s.address+":"+s.port, nil); err != nil {
-		fmt.Println(err)
+		return err
 	}
+
+	return nil
 }

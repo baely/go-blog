@@ -1,8 +1,13 @@
 package main
 
-import server2 "go-blog/cmd/server"
+import (
+	"fmt"
+	server2 "go-blog/cmd/server"
+)
 
 func main() {
 	server := server2.Server{}
-	server.Run("authors.json", "posts.json")
+	if err := server.Run("authors.json", "posts.json"); err != nil {
+		fmt.Println(err)
+	}
 }
