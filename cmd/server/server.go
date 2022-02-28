@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-blog/pkg/blog"
 	"go-blog/pkg/util"
@@ -70,17 +71,27 @@ func (s *Server) init(authorsFile string, postsFile string) error {
 }
 
 func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
-	for i, author := range s.data.authors {
-		if _, err := fmt.Fprintf(w, "Author #%d: [%s]\n", i, author.DisplayName()); err != nil {
-			fmt.Println(err)
-		}
+	authors := make([]blog.Author, len(s.data.authors))
+
+	i := 0
+	for _, author := range s.data.authors {
+		authors[i] = author
+		i++
 	}
+
+	authorsResponse, _ := json.Marshal(authors)
+	fmt.Fprintln(w, string(authorsResponse))
 }
 
 func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
-	for i, post := range s.data.posts {
-		if _, err := fmt.Fprintf(w, "Post #%d: [%s]\n", i, post.BasicText()); err != nil {
-			fmt.Println(err)
-		}
+	posts := make([]blog.Post, len(s.data.posts))
+
+	i := 0
+	for _, post := range s.data.posts {
+		posts[i] = post
+		i++
 	}
+
+	postsResponse, _ := json.Marshal(posts)
+	fmt.Fprintln(w, string(postsResponse))
 }
