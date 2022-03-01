@@ -6,6 +6,27 @@ import (
 	"io/ioutil"
 )
 
+type BlogData struct {
+	Authors map[int]blog.Author
+	Posts   map[int]blog.Post
+}
+
+func LoadServerData(authorsFile string, postsFile string) (BlogData, error) {
+	authors, err1 := LoadAuthors(authorsFile)
+	if err1 != nil {
+		return BlogData{}, err1
+	}
+	posts, err2 := LoadPosts(postsFile, authors)
+	if err2 != nil {
+		return BlogData{}, err2
+	}
+	data := BlogData{
+		Authors: authors,
+		Posts:   posts,
+	}
+	return data, nil
+}
+
 func LoadAuthors(authorsLocation string) (map[int]blog.Author, error) {
 	var authors []blog.Author
 	authorsMap := make(map[int]blog.Author)

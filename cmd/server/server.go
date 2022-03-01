@@ -10,31 +10,16 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type serverData struct {
-	authors map[int]blog.Author
-	posts   map[int]blog.Post
+type DataMeta struct {
+	authorsFile string
+	postsFile   string
 }
 
 type Server struct {
 	address string
 	port    string
-	data    serverData
-}
-
-func loadServerData(authorsFile string, postsFile string) (serverData, error) {
-	authors, err1 := util.LoadAuthors(authorsFile)
-	if err1 != nil {
-		return serverData{}, err1
-	}
-	posts, err2 := util.LoadPosts(postsFile, authors)
-	if err2 != nil {
-		return serverData{}, err2
-	}
-	data := serverData{
-		authors: authors,
-		posts:   posts,
-	}
-	return data, nil
+	blogData    util.BlogData
+	meta    DataMeta
 }
 
 func (s *Server) Run(authorsFile string, postsFile string) error {
@@ -62,21 +47,29 @@ func (s *Server) Run(authorsFile string, postsFile string) error {
 	return nil
 }
 
-func (s *Server) init(authorsFile string, postsFile string) error {
-	data, err := loadServerData(authorsFile, postsFile)
+func (s *Server) refreshBlogData() error {
+	data, err := util.LoadServerData(s.meta.authorsFile, s.meta.postsFile)
 	if err != nil {
 		return err
 	}
-	s.data = data
+	s.blogData = data
+
+	return nil
+}
+
+func (s *Server) init() error {
+	if err := s.refreshBlogData(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
-	authors := make([]blog.Author, len(s.data.authors))
+	authors := make([]blog.Author, len(s.blogData.Authors))
 
 	i := 0
-	for _, author := range s.data.authors {
+	for _, author := range s.blogData.Authors {
 		authors[i] = author
 		i++
 	}
@@ -86,10 +79,10 @@ func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
-	posts := make([]blog.Post, len(s.data.posts))
+	posts := make([]blog.Post, len(s.blogData.Posts))
 
 	i := 0
-	for _, post := range s.data.posts {
+	for _, post := range s.blogData.Posts {
 		posts[i] = post
 		i++
 	}
