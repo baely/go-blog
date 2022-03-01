@@ -10,46 +10,32 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type serverData struct {
-	authors map[int]blog.Author
-	posts   map[int]blog.Post
+type DataMeta struct {
+	authorsFile string
+	postsFile   string
 }
 
 type Server struct {
 	address string
 	port    string
-	data    serverData
-}
-
-func loadServerData(authorsFile string, postsFile string) (serverData, error) {
-	authors, err1 := util.LoadAuthors(authorsFile)
-	if err1 != nil {
-		return serverData{}, err1
-	}
-	posts, err2 := util.LoadPosts(postsFile, authors)
-	if err2 != nil {
-		return serverData{}, err2
-	}
-	data := serverData{
-		authors: authors,
-		posts:   posts,
-	}
-	return data, nil
+	blogData    util.BlogData
+	meta    DataMeta
 }
 
 func (s *Server) Run(authorsFile string, postsFile string) error {
-	if s.port == "" {
-		s.port = "8080"
+	if err := s.init(authorsFile, postsFile); err != nil {
+		return err
 	}
 
 	r := chi.NewRouter()
 
-	r.Get("/authors", s.serveAuthors)
-	r.Get("/posts", s.serverPosts)
+	r.Get("/authors", s.getAuthors)
+	r.Get("/posts", s.getPosts)
 
-	if err := s.init(authorsFile, postsFile); err != nil {
-		return err
-	}
+	r.Post("/authors", s.postAuthors)
+	r.Post("/posts", s.postPosts)
+
+
 
 	fmt.Println("Server is running...")
 
@@ -60,21 +46,36 @@ func (s *Server) Run(authorsFile string, postsFile string) error {
 	return nil
 }
 
-func (s *Server) init(authorsFile string, postsFile string) error {
-	data, err := loadServerData(authorsFile, postsFile)
+func (s *Server) refreshBlogData() error {
+	data, err := util.LoadServerData(s.meta.authorsFile, s.meta.postsFile)
 	if err != nil {
 		return err
 	}
-	s.data = data
+	s.blogData = data
 
 	return nil
 }
 
-func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
-	authors := make([]blog.Author, len(s.data.authors))
+func (s *Server) init(authorsFile string, postsFile string) error {
+	if s.port == "" {
+		s.port = "8080"
+	}
+
+	s.meta.authorsFile = authorsFile
+	s.meta.postsFile = postsFile
+
+	if err := s.refreshBlogData(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) getAuthors(w http.ResponseWriter, r *http.Request) {
+	authors := make([]blog.Author, len(s.blogData.Authors))
 
 	i := 0
-	for _, author := range s.data.authors {
+	for _, author := range s.blogData.Authors {
 		authors[i] = author
 		i++
 	}
@@ -83,15 +84,34 @@ func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, string(authorsResponse))
 }
 
-func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
-	posts := make([]blog.Post, len(s.data.posts))
+func (s *Server) postAuthors(w http.ResponseWriter, r *http.Request) {
+	var author blog.Author
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&author)
+
+	if err != nil {
+		fmt.Fprintln(w, "Failed")
+	} else {
+		util.SaveAuthor(s.meta.authorsFile, author)
+	}
+
+	s.refreshBlogData()
+}
+
+func (s *Server) getPosts(w http.ResponseWriter, r *http.Request) {
+	posts := make([]blog.Post, len(s.blogData.Posts))
 
 	i := 0
-	for _, post := range s.data.posts {
+	for _, post := range s.blogData.Posts {
 		posts[i] = post
 		i++
 	}
 
 	postsResponse, _ := json.Marshal(posts)
 	fmt.Fprintln(w, string(postsResponse))
+}
+
+func (s *Server) postPosts(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "not working at this stage.")
 }
