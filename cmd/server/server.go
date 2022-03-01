@@ -32,7 +32,9 @@ func (s *Server) Run(authorsFile string, postsFile string) error {
 	r.Get("/authors", s.serveAuthors)
 	r.Get("/posts", s.serverPosts)
 
-	if err := s.init(); err != nil {
+	r.Handle("/", http.FileServer(http.Dir("./app")))
+
+	if err := s.init(authorsFile, postsFile); err != nil {
 		return err
 	}
 

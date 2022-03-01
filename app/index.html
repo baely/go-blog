@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        html, body {margin: 0; padding: 0}
+        #posts {margin: 0 auto; width: 720px}
+        #posts .post {background-color: #eee; margin: 5px; padding: 5px; border:1px solid black}#posts .post span {display: block}
+    </style>
+</head>
+<body>
+<div id="posts"></div>
+<script>
+    postsRoll = document.getElementById("posts");
+
+    fetch("/posts")
+        .then(r => r.json())
+        .then(d => d.sort(x => x.id).forEach(p => {
+            let newPost = document.createElement("div");
+            newPost.classList.add("post");
+
+            for (let key of Object.keys(p)) {
+                let postInfoBlock = document.createElement("span");
+                if (key === "author")
+                    postInfoBlock.innerHTML = key + ": " + p[key].name;
+                else
+                    postInfoBlock.innerHTML = key + ": " + p[key];
+                newPost.appendChild(postInfoBlock);
+            }
+
+            postsRoll.appendChild(newPost);
+        }))
+</script>
+</body>
+</html>

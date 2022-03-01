@@ -10,8 +10,8 @@ type RawPost struct {
 }
 
 type Post struct {
-	Id       int `json:"id"`
-	Author   Author
+	Id       int    `json:"id"`
+	Author   Author `json:"author"`
 	Title    string `json:"title"`
 	Body     string `json:"body"`
 }
