@@ -23,18 +23,19 @@ type Server struct {
 }
 
 func (s *Server) Run(authorsFile string, postsFile string) error {
-	if s.port == "" {
-		s.port = "8080"
+	if err := s.init(authorsFile, postsFile); err != nil {
+		return err
 	}
 
 	r := chi.NewRouter()
 
-	r.Get("/authors", s.serveAuthors)
-	r.Get("/posts", s.serverPosts)
+	r.Get("/authors", s.getAuthors)
+	r.Get("/posts", s.getPosts)
 
-	if err := s.init(); err != nil {
-		return err
-	}
+	r.Post("/authors", s.postAuthors)
+	r.Post("/posts", s.postPosts)
+
+
 
 	fmt.Println("Server is running...")
 
@@ -55,7 +56,14 @@ func (s *Server) refreshBlogData() error {
 	return nil
 }
 
-func (s *Server) init() error {
+func (s *Server) init(authorsFile string, postsFile string) error {
+	if s.port == "" {
+		s.port = "8080"
+	}
+
+	s.meta.authorsFile = authorsFile
+	s.meta.postsFile = postsFile
+
 	if err := s.refreshBlogData(); err != nil {
 		return err
 	}
@@ -63,7 +71,7 @@ func (s *Server) init() error {
 	return nil
 }
 
-func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getAuthors(w http.ResponseWriter, r *http.Request) {
 	authors := make([]blog.Author, len(s.blogData.Authors))
 
 	i := 0
@@ -76,7 +84,22 @@ func (s *Server) serveAuthors(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, string(authorsResponse))
 }
 
-func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
+func (s *Server) postAuthors(w http.ResponseWriter, r *http.Request) {
+	var author blog.Author
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&author)
+
+	if err != nil {
+		fmt.Fprintln(w, "Failed")
+	} else {
+		util.SaveAuthor(s.meta.authorsFile, author)
+	}
+
+	s.refreshBlogData()
+}
+
+func (s *Server) getPosts(w http.ResponseWriter, r *http.Request) {
 	posts := make([]blog.Post, len(s.blogData.Posts))
 
 	i := 0
@@ -87,4 +110,8 @@ func (s *Server) serverPosts(w http.ResponseWriter, r *http.Request) {
 
 	postsResponse, _ := json.Marshal(posts)
 	fmt.Fprintln(w, string(postsResponse))
+}
+
+func (s *Server) postPosts(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "not working at this stage.")
 }

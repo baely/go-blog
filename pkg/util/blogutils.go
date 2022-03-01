@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go-blog/pkg/blog"
 	"io/ioutil"
+	"os"
 )
 
 type BlogData struct {
@@ -46,6 +47,32 @@ func LoadAuthors(authorsLocation string) (map[int]blog.Author, error) {
 	}
 
 	return authorsMap, err
+}
+
+func SaveAuthor(authorsLocation string, author blog.Author) error {
+	authorsMap, err := LoadAuthors(authorsLocation)
+	if err != nil {
+		return err
+	}
+	authors := make([]blog.Author, len(authorsMap))
+
+	i := 0
+	for _, existingAuthor := range authorsMap {
+		authors[i] = existingAuthor
+		i++
+	}
+
+	author.Id = i
+
+	authors = append(authors, author)
+	authorsData, err := json.Marshal(authors)
+	if err != nil {
+		return err
+	}
+
+	os.WriteFile(authorsLocation, authorsData, 0777)
+
+	return nil
 }
 
 func LoadPosts(postsLocation string, authors map[int]blog.Author) (map[int]blog.Post, error) {
